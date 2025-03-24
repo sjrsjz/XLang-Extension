@@ -1,0 +1,94 @@
+{
+    "name": "xlang",
+    "displayName": "XLang Language Support",
+    "description": "Syntax highlighting and language support for XLang",
+    "version": "0.1.0",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "xlang",
+                "aliases": [
+                    "XLang",
+                    "xlang"
+                ],
+                "extensions": [
+                    ".x"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "xlang",
+                "scopeName": "source.xlang",
+                "path": "./syntaxes/xlang.tmLanguage.json"
+            }
+        ],
+        "commands": [
+            {
+                "command": "xlang.run",
+                "title": "运行XLang文件",
+                "category": "XLang"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "xlang.run",
+                "key": "f5",
+                "when": "editorLangId == xlang"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "xlang.run",
+                    "when": "editorLangId == xlang",
+                    "group": "XLang"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "XLang",
+            "properties": {
+                "xlang.runtimePath": {
+                    "type": "string",
+                    "default": "XLang-Rust",
+                    "description": "XLang-Rust运行时的可执行文件路径"
+                },
+                "xlang.useFullPath": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "是否使用完整路径执行XLang-Rust"
+                },
+                "xlang.workingDirectory": {
+                    "type": "string",
+                    "default": "",
+                    "description": "XLang-Rust运行时的工作目录，留空使用文件所在目录"
+                },
+                "xlang.shellType": {
+                    "type": "string",
+                    "enum": [
+                        "default",
+                        "powershell",
+                        "cmd",
+                        "bash",
+                        "sh"
+                    ],
+                    "default": "default",
+                    "description": "运行XLang-Rust时使用的终端类型"
+                }
+            }
+        }
+    },
+    "main": "./extension.js",
+    "activationEvents": [
+        "onLanguage:xlang",
+        "onCommand:xlang.run"
+    ]
+}
