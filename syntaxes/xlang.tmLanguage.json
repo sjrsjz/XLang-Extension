@@ -62,7 +62,7 @@
             "patterns": [
                 {
                     "name": "keyword.control.xlang",
-                    "match": "\\b(if|else|while|return|break|continue|yield|await|in|import|self|dyn)\\b"
+                    "match": "\\b(if|else|while|return|break|continue|yield|async|await|in|import|self|dyn)\\b"
                 },
                 {
                     "name": "keyword.operator.logical.xlang",
@@ -585,21 +585,88 @@
                     }
                 },
                 {
+                    "name": "meta.brackets.xlang",
                     "begin": "\\[",
                     "end": "\\]",
                     "beginCaptures": {
                         "0": {
-                            "name": "punctuation.definition.index.begin.xlang"
+                            "name": "punctuation.definition.brackets.begin.xlang"
                         }
                     },
                     "endCaptures": {
                         "0": {
-                            "name": "punctuation.definition.index.end.xlang"
+                            "name": "punctuation.definition.brackets.end.xlang"
                         }
                     },
                     "patterns": [
                         {
+                            "include": "#comments"
+                        },
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#numbers"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#operators"
+                        },
+                        {
+                            "include": "#functions"
+                        },
+                        {
+                            "include": "#variables"
+                        },
+                        {
                             "include": "#expressions"
+                        }
+                    ]
+                },
+                {
+                    "name": "meta.function-call.xlang",
+                    "begin": "\\(",
+                    "end": "\\)",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.arguments.begin.xlang"
+                        }
+                    },
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.arguments.end.xlang"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#comments"
+                        },
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#numbers"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#operators"
+                        },
+                        {
+                            "include": "#functions"
+                        },
+                        {
+                            "include": "#variables"
+                        },
+                        {
+                            "include": "#expressions"
+                        },
+                        {
+                            "name": "punctuation.separator.arguments.xlang",
+                            "match": ","
                         }
                     ]
                 }
