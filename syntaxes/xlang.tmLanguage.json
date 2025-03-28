@@ -2,8 +2,7 @@
     "name": "XLang",
     "scopeName": "source.xlang",
     "fileTypes": [
-        "x",
-        "xir"
+        "x"
     ],
     "patterns": [
         {
@@ -11,6 +10,9 @@
         },
         {
             "include": "#keywords"
+        },
+        {
+            "include": "#expressions"
         },
         {
             "include": "#strings"
@@ -60,7 +62,7 @@
             "patterns": [
                 {
                     "name": "keyword.control.xlang",
-                    "match": "\\b(if|else|while|return|break|continue|yield|await|in|import|self)\\b"
+                    "match": "\\b(if|else|while|return|break|continue|yield|await|in|import|self|dyn)\\b"
                 },
                 {
                     "name": "keyword.operator.logical.xlang",
@@ -73,6 +75,94 @@
                 {
                     "name": "storage.type.xlang",
                     "match": "\\b(int|float|string|bool|tuple|keyval|named|lambda|range|wrap)\\b"
+                }
+            ]
+        },
+        "expressions": {
+            "patterns": [
+                {
+                    "include": "#return_or_yield"
+                },
+                {
+                    "include": "#tuple"
+                },
+                {
+                    "include": "#let_expression"
+                },
+                {
+                    "include": "#assign_expression"
+                },
+                {
+                    "include": "#lambda_def"
+                },
+                {
+                    "include": "#named_to"
+                },
+                {
+                    "include": "#key_value"
+                },
+                {
+                    "include": "#while_loop"
+                },
+                {
+                    "include": "#if_statement"
+                },
+                {
+                    "include": "#control_flow"
+                },
+                {
+                    "include": "#or_expression"
+                },
+                {
+                    "include": "#and_expression"
+                },
+                {
+                    "include": "#not_expression"
+                },
+                {
+                    "include": "#comparison_expression"
+                },
+                {
+                    "include": "#add_sub_expression"
+                },
+                {
+                    "include": "#mul_div_mod_expression"
+                },
+                {
+                    "include": "#bitwise_or_expression"
+                },
+                {
+                    "include": "#bitwise_and_expression"
+                },
+                {
+                    "include": "#bitwise_xor_expression"
+                },
+                {
+                    "include": "#bitwise_shift_expression"
+                },
+                {
+                    "include": "#unary_expression"
+                },
+                {
+                    "include": "#power_expression"
+                },
+                {
+                    "include": "#range_expression"
+                },
+                {
+                    "include": "#in_expression"
+                },
+                {
+                    "include": "#modifier_expression"
+                },
+                {
+                    "include": "#named_to_null"
+                },
+                {
+                    "include": "#alias_expression"
+                },
+                {
+                    "include": "#member_access_or_call"
                 }
             ]
         },
@@ -121,6 +211,18 @@
                             "match": "\\\\."
                         }
                     ]
+                },
+                {
+                    "name": "string.quoted.raw.xlang",
+                    "begin": "R\"\\w*\\(",
+                    "end": "\\)\\w*\"",
+                    "patterns": []
+                },
+                {
+                    "name": "string.quoted.base64.xlang",
+                    "begin": "\\$\"",
+                    "end": "\"",
+                    "patterns": []
                 }
             ]
         },
@@ -176,7 +278,7 @@
                 },
                 {
                     "name": "keyword.operator.keyvalue.xlang",
-                    "match": "(\\s*:\\s*)"
+                    "match": "(:)"
                 },
                 {
                     "name": "keyword.operator.named.xlang",
@@ -189,6 +291,14 @@
                 {
                     "name": "keyword.operator.alias.xlang",
                     "match": "(::)"
+                },
+                {
+                    "name": "keyword.operator.nullcheck.xlang",
+                    "match": "(\\?)"
+                },
+                {
+                    "name": "keyword.operator.semi.xlang",
+                    "match": "(;)"
                 }
             ]
         },
@@ -209,15 +319,6 @@
                     "captures": {
                         "1": {
                             "name": "entity.name.function.xlang"
-                        }
-                    }
-                },
-                {
-                    "name": "meta.function.lambda.xlang",
-                    "match": "\\s*(->)\\s*",
-                    "captures": {
-                        "1": {
-                            "name": "keyword.operator.arrow.xlang"
                         }
                     }
                 }
@@ -260,17 +361,6 @@
                 {
                     "name": "support.type.xlang",
                     "match": "\\b([A-Z][a-zA-Z0-9_]*)\\b"
-                },
-                {
-                    "match": "\\b([A-Z][a-zA-Z0-9_]*)\\s*(::)",
-                    "captures": {
-                        "1": {
-                            "name": "entity.name.type.xlang"
-                        },
-                        "2": {
-                            "name": "keyword.operator.alias.xlang"
-                        }
-                    }
                 }
             ]
         },
@@ -279,6 +369,239 @@
                 {
                     "name": "storage.modifier.xlang",
                     "match": "\\b(bind|deepcopy|copy|ref|deref|keyof|valueof|selfof|assert|import|wrap|typeof|await|wipe|aliasof|async|len)\\b"
+                }
+            ]
+        },
+        "return_or_yield": {
+            "name": "keyword.control.flow.xlang",
+            "match": "\\b(return|yield)\\b"
+        },
+        "tuple": {
+            "name": "meta.tuple.xlang",
+            "begin": "\\(",
+            "end": "\\)",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.section.tuple.begin.xlang"
+                }
+            },
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.section.tuple.end.xlang"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#comments"
+                },
+                {
+                    "include": "#strings"
+                },
+                {
+                    "include": "#numbers"
+                },
+                {
+                    "include": "#keywords"
+                },
+                {
+                    "include": "#operators"
+                },
+                {
+                    "include": "#functions"
+                },
+                {
+                    "include": "#variables"
+                },
+                {
+                    "include": "#expressions"
+                },
+                {
+                    "name": "punctuation.separator.tuple.xlang",
+                    "match": ","
+                }
+            ]
+        },
+        "let_expression": {
+            "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:=)",
+            "captures": {
+                "1": {
+                    "name": "variable.declaration.xlang"
+                },
+                "2": {
+                    "name": "keyword.operator.assignment.xlang"
+                }
+            }
+        },
+        "assign_expression": {
+            "match": "=",
+            "name": "keyword.operator.assignment.xlang"
+        },
+        "lambda_def": {
+            "name": "meta.function.lambda.xlang",
+            "begin": "\\(\\s*",
+            "end": "\\)\\s*(->)\\s*(dyn)?",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.parameters.begin.xlang"
+                }
+            },
+            "endCaptures": {
+                "1": {
+                    "name": "keyword.operator.arrow.xlang"
+                },
+                "2": {
+                    "name": "keyword.control.dyn.xlang"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#variables"
+                },
+                {
+                    "name": "punctuation.separator.parameter.xlang",
+                    "match": ","
+                }
+            ]
+        },
+        "named_to": {
+            "match": "(=>)",
+            "name": "keyword.operator.named.xlang"
+        },
+        "key_value": {
+            "match": "(:)",
+            "name": "keyword.operator.keyvalue.xlang"
+        },
+        "while_loop": {
+            "begin": "\\b(while)\\b",
+            "end": "(?={)",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.control.loop.xlang"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expressions"
+                }
+            ]
+        },
+        "if_statement": {
+            "begin": "\\b(if)\\b",
+            "end": "(?={)",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.control.conditional.xlang"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#expressions"
+                }
+            ]
+        },
+        "control_flow": {
+            "match": "\\b(break|continue)\\b",
+            "name": "keyword.control.flow.xlang"
+        },
+        "or_expression": {
+            "match": "\\b(or)\\b",
+            "name": "keyword.operator.logical.xlang"
+        },
+        "and_expression": {
+            "match": "\\b(and)\\b",
+            "name": "keyword.operator.logical.xlang"
+        },
+        "not_expression": {
+            "match": "\\b(not)\\b",
+            "name": "keyword.operator.logical.xlang"
+        },
+        "comparison_expression": {
+            "match": "(==|!=|<=|>=|<|>)",
+            "name": "keyword.operator.comparison.xlang"
+        },
+        "add_sub_expression": {
+            "match": "(\\+|-)",
+            "name": "keyword.operator.arithmetic.xlang"
+        },
+        "mul_div_mod_expression": {
+            "match": "(\\*|/|%)",
+            "name": "keyword.operator.arithmetic.xlang"
+        },
+        "bitwise_or_expression": {
+            "match": "(\\|)",
+            "name": "keyword.operator.bitwise.xlang"
+        },
+        "bitwise_and_expression": {
+            "match": "(\\&)",
+            "name": "keyword.operator.bitwise.xlang"
+        },
+        "bitwise_xor_expression": {
+            "match": "(\\^)",
+            "name": "keyword.operator.bitwise.xlang"
+        },
+        "bitwise_shift_expression": {
+            "match": "(<<|>>)",
+            "name": "keyword.operator.bitwise.xlang"
+        },
+        "unary_expression": {
+            "match": "(\\+|-|~|!)",
+            "name": "keyword.operator.unary.xlang"
+        },
+        "power_expression": {
+            "match": "(\\*\\*)",
+            "name": "keyword.operator.arithmetic.xlang"
+        },
+        "range_expression": {
+            "match": "(\\.\\.)",
+            "name": "keyword.operator.range.xlang"
+        },
+        "in_expression": {
+            "match": "\\b(in)\\b",
+            "name": "keyword.operator.in.xlang"
+        },
+        "modifier_expression": {
+            "match": "\\b(deepcopy|copy|ref|deref|keyof|valueof|selfof|assert|import|wrap|typeof|await|wipe|aliasof|bind)\\b",
+            "name": "storage.modifier.xlang"
+        },
+        "named_to_null": {
+            "match": "(\\?)",
+            "name": "keyword.operator.nullcheck.xlang"
+        },
+        "alias_expression": {
+            "match": "(::)",
+            "name": "keyword.operator.alias.xlang"
+        },
+        "member_access_or_call": {
+            "patterns": [
+                {
+                    "match": "\\.([a-zA-Z_][a-zA-Z0-9_]*)",
+                    "captures": {
+                        "0": {
+                            "name": "keyword.operator.accessor.xlang"
+                        },
+                        "1": {
+                            "name": "variable.other.member.xlang"
+                        }
+                    }
+                },
+                {
+                    "begin": "\\[",
+                    "end": "\\]",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.index.begin.xlang"
+                        }
+                    },
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.index.end.xlang"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#expressions"
+                        }
+                    ]
                 }
             ]
         }

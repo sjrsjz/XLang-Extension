@@ -6,6 +6,7 @@
     "engines": {
         "vscode": "^1.60.0"
     },
+    "icon": "images/icon.ico",
     "categories": [
         "Programming Languages"
     ],
