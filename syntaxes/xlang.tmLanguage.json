@@ -395,13 +395,16 @@
                     "include": "#comments"
                 },
                 {
+                    "include": "#keywords"
+                },
+                {
+                    "include": "#expressions"
+                },
+                {
                     "include": "#strings"
                 },
                 {
                     "include": "#numbers"
-                },
-                {
-                    "include": "#keywords"
                 },
                 {
                     "include": "#operators"
@@ -413,7 +416,13 @@
                     "include": "#variables"
                 },
                 {
-                    "include": "#expressions"
+                    "include": "#control-flow"
+                },
+                {
+                    "include": "#types"
+                },
+                {
+                    "include": "#modifiers"
                 },
                 {
                     "name": "punctuation.separator.tuple.xlang",
@@ -603,13 +612,16 @@
                             "include": "#comments"
                         },
                         {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#expressions"
+                        },
+                        {
                             "include": "#strings"
                         },
                         {
                             "include": "#numbers"
-                        },
-                        {
-                            "include": "#keywords"
                         },
                         {
                             "include": "#operators"
@@ -619,6 +631,15 @@
                         },
                         {
                             "include": "#variables"
+                        },
+                        {
+                            "include": "#control-flow"
+                        },
+                        {
+                            "include": "#types"
+                        },
+                        {
+                            "include": "#modifiers"
                         },
                         {
                             "include": "#expressions"
@@ -644,13 +665,16 @@
                             "include": "#comments"
                         },
                         {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#expressions"
+                        },
+                        {
                             "include": "#strings"
                         },
                         {
                             "include": "#numbers"
-                        },
-                        {
-                            "include": "#keywords"
                         },
                         {
                             "include": "#operators"
@@ -662,7 +686,13 @@
                             "include": "#variables"
                         },
                         {
-                            "include": "#expressions"
+                            "include": "#control-flow"
+                        },
+                        {
+                            "include": "#types"
+                        },
+                        {
+                            "include": "#modifiers"
                         },
                         {
                             "name": "punctuation.separator.arguments.xlang",
