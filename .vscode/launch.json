@@ -12,22 +12,6 @@
             "outFiles": [
                 "${workspaceFolder}/out/**/*.js"
             ],
-        },
-        {
-            "name": "XLang-Rust: 运行当前文件",
-            "type": "shell",
-            "request": "launch",
-            "command": "XLang-Rust",
-            "args": [
-                "run",
-                "${file}"
-            ],
-            "group": "test",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
         }
     ]
 }

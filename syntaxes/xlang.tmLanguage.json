@@ -62,7 +62,7 @@
             "patterns": [
                 {
                     "name": "keyword.control.xlang",
-                    "match": "\\b(if|else|while|return|break|continue|yield|async|await|in|import|self|dyn)\\b"
+                    "match": "\\b(if|else|while|return|break|continue|yield|async|await|in|import|self|dyn|boundary|raise)\\b"
                 },
                 {
                     "name": "keyword.operator.logical.xlang",
@@ -81,7 +81,7 @@
         "expressions": {
             "patterns": [
                 {
-                    "include": "#return_or_yield"
+                    "include": "#return_yield_raise"
                 },
                 {
                     "include": "#tuple"
@@ -372,9 +372,9 @@
                 }
             ]
         },
-        "return_or_yield": {
+        "return_yield_raise": {
             "name": "keyword.control.flow.xlang",
-            "match": "\\b(return|yield)\\b"
+            "match": "\\b(return|yield|raise)\\b"
         },
         "tuple": {
             "name": "meta.tuple.xlang",
