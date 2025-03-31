@@ -159,6 +159,9 @@
                     "include": "#named_to_null"
                 },
                 {
+                    "include": "#assume_tuple"
+                },
+                {
                     "include": "#alias_expression"
                 },
                 {
@@ -287,6 +290,18 @@
                 {
                     "name": "keyword.operator.arrow.xlang",
                     "match": "(->)"
+                },
+                {
+                    "name": "keyword.operator.accessor.xlang",
+                    "match": "(\\[|\\])"
+                },
+                {
+                    "name": "keyword.operator.member.xlang",
+                    "match": "(\\.)"
+                },
+                {
+                    "name": "keyword.operator.assume_tuple.xlang",
+                    "match": "(\\.\\.\\.)"
                 },
                 {
                     "name": "keyword.operator.alias.xlang",
@@ -575,6 +590,10 @@
         "named_to_null": {
             "match": "(\\?)",
             "name": "keyword.operator.nullcheck.xlang"
+        },
+        "assume_tuple": {
+            "match": "(\\.\\.\\.)",
+            "name": "keyword.operator.assume_tuple.xlang"
         },
         "alias_expression": {
             "match": "(::)",
