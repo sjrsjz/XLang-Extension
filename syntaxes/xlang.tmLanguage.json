@@ -62,7 +62,7 @@
             "patterns": [
                 {
                     "name": "keyword.control.xlang",
-                    "match": "\\b(if|else|while|return|break|continue|yield|async|await|in|import|self|dyn|boundary|raise)\\b"
+                    "match": "\\b(if|else|while|return|break|continue|yield|async|await|in|import|this|self|dyn|boundary|raise)\\b"
                 },
                 {
                     "name": "keyword.operator.logical.xlang",
