@@ -1,15 +1,19 @@
 {
-    "name": "xlang",
-    "displayName": "XLang Language Support",
-    "description": "Syntax highlighting and language support for XLang",
+    "name": "xlang-extension",
+    "displayName": "XLang",
+    "description": "XLang 编程语言支持",
     "version": "0.1.0",
     "engines": {
         "vscode": "^1.60.0"
     },
-    "icon": "images/icon.ico",
     "categories": [
         "Programming Languages"
     ],
+    "activationEvents": [
+        "onLanguage:xlang",
+        "onCommand:xlang.run"
+    ],
+    "main": "./extension.js",
     "contributes": {
         "languages": [
             {
@@ -34,23 +38,23 @@
         "commands": [
             {
                 "command": "xlang.run",
-                "title": "运行XLang文件",
+                "title": "Run XLang File",
                 "category": "XLang"
-            }
-        ],
-        "keybindings": [
-            {
-                "command": "xlang.run",
-                "key": "f5",
-                "when": "editorLangId == xlang"
             }
         ],
         "menus": {
             "editor/context": [
                 {
-                    "command": "xlang.run",
                     "when": "editorLangId == xlang",
-                    "group": "XLang"
+                    "command": "xlang.run",
+                    "group": "navigation"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "when": "resourceExtname == .x",
+                    "command": "xlang.run",
+                    "group": "navigation"
                 }
             ]
         },
@@ -60,36 +64,77 @@
                 "xlang.runtimePath": {
                     "type": "string",
                     "default": "XLang-Rust",
-                    "description": "XLang-Rust运行时的可执行文件路径"
+                    "description": "XLang 运行时可执行文件的路径"
                 },
                 "xlang.useFullPath": {
                     "type": "boolean",
                     "default": false,
-                    "description": "是否使用完整路径执行XLang-Rust"
+                    "description": "是否使用完整路径调用 XLang 运行时"
                 },
                 "xlang.workingDirectory": {
                     "type": "string",
                     "default": "",
-                    "description": "XLang-Rust运行时的工作目录，留空使用文件所在目录"
+                    "description": "运行 XLang 文件时的工作目录"
                 },
                 "xlang.shellType": {
                     "type": "string",
                     "enum": [
                         "default",
-                        "powershell",
-                        "cmd",
                         "bash",
-                        "sh"
+                        "sh",
+                        "powershell",
+                        "cmd"
                     ],
                     "default": "default",
-                    "description": "运行XLang-Rust时使用的终端类型"
+                    "description": "使用的终端类型"
+                },
+                "xlang.lsp.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "是否启用 XLang 语言服务器"
+                },
+                "xlang.lsp.logLevel": {
+                    "type": "string",
+                    "enum": [
+                        "off",
+                        "error",
+                        "warn",
+                        "info",
+                        "debug",
+                        "trace"
+                    ],
+                    "default": "info",
+                    "description": "语言服务器日志级别"
+                },
+                "xlang.lspPort": {
+                    "type": "number",
+                    "default": 9257,
+                    "description": "XLang LSP服务器使用的TCP端口"
                 }
             }
         }
     },
-    "main": "./extension.js",
-    "activationEvents": [
-        "onLanguage:xlang",
-        "onCommand:xlang.run"
-    ]
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "echo 'No compilation needed'",
+        "watch": "echo 'Watch mode not supported'"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^8.1.0"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.60.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sjrsjz/XLang-Extension.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "bugs": {
+        "url": "https://github.com/sjrsjz/XLang-Extension/issues"
+    },
+    "homepage": "https://github.com/sjrsjz/XLang-Extension#readme"
 }
