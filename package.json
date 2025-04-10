@@ -115,7 +115,7 @@
         "watch": "echo 'Watch mode not supported'"
     },
     "dependencies": {
-        "vscode-languageclient": "^7.0.0"
+        "vscode-languageclient": "^9.0.1"
     },
     "devDependencies": {
         "@types/vscode": "^1.60.0"
