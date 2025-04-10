@@ -1,7 +1,7 @@
 {
     "name": "xlang-extension",
-    "displayName": "XLang",
-    "description": "XLang 编程语言支持",
+    "displayName": "XLang Extension",
+    "description": "XLang语言支持",
     "version": "0.1.0",
     "engines": {
         "vscode": "^1.60.0"
@@ -11,7 +11,8 @@
     ],
     "activationEvents": [
         "onLanguage:xlang",
-        "onCommand:xlang.run"
+        "onCommand:xlang.run",
+        "onCommand:xlang.diagnose"
     ],
     "main": "./extension.js",
     "contributes": {
@@ -23,7 +24,8 @@
                     "xlang"
                 ],
                 "extensions": [
-                    ".x"
+                    ".x",
+                    ".xlang"
                 ],
                 "configuration": "./language-configuration.json"
             }
@@ -38,8 +40,11 @@
         "commands": [
             {
                 "command": "xlang.run",
-                "title": "Run XLang File",
-                "category": "XLang"
+                "title": "运行XLang文件"
+            },
+            {
+                "command": "xlang.diagnose",
+                "title": "XLang诊断"
             }
         ],
         "menus": {
@@ -64,17 +69,17 @@
                 "xlang.runtimePath": {
                     "type": "string",
                     "default": "XLang-Rust",
-                    "description": "XLang 运行时可执行文件的路径"
+                    "description": "XLang运行时可执行文件的路径"
                 },
                 "xlang.useFullPath": {
                     "type": "boolean",
                     "default": false,
-                    "description": "是否使用完整路径调用 XLang 运行时"
+                    "description": "是否使用完整路径调用XLang可执行文件"
                 },
                 "xlang.workingDirectory": {
                     "type": "string",
                     "default": "",
-                    "description": "运行 XLang 文件时的工作目录"
+                    "description": "运行XLang时使用的工作目录，默认为文件所在目录"
                 },
                 "xlang.shellType": {
                     "type": "string",
@@ -86,33 +91,23 @@
                         "cmd"
                     ],
                     "default": "default",
-                    "description": "使用的终端类型"
-                },
-                "xlang.lsp.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "是否启用 XLang 语言服务器"
-                },
-                "xlang.lsp.logLevel": {
-                    "type": "string",
-                    "enum": [
-                        "off",
-                        "error",
-                        "warn",
-                        "info",
-                        "debug",
-                        "trace"
-                    ],
-                    "default": "info",
-                    "description": "语言服务器日志级别"
+                    "description": "使用的Shell类型"
                 },
                 "xlang.lspPort": {
                     "type": "number",
                     "default": 9257,
-                    "description": "XLang LSP服务器使用的TCP端口"
+                    "description": "LSP服务器使用的端口号"
                 }
             }
-        }
+        },
+        "keybindings": [
+            {
+                "command": "xlang.run",
+                "key": "f5",
+                "mac": "f5",
+                "when": "editorLangId == xlang"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
@@ -120,7 +115,7 @@
         "watch": "echo 'Watch mode not supported'"
     },
     "dependencies": {
-        "vscode-languageclient": "^8.1.0"
+        "vscode-languageclient": "^7.0.0"
     },
     "devDependencies": {
         "@types/vscode": "^1.60.0"

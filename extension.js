@@ -19,10 +19,97 @@ function activate(context) {
 
     // 启动LSP服务器
     startLSP(context);
-
     // 注册运行XLang文件的命令
     let disposable = vscode.commands.registerCommand('xlang.run', function () {
         runXLangFile();
+    });
+    // 添加测试命令
+    let testDisposable = vscode.commands.registerCommand('xlang.diagnose', () => {
+        // 获取当前活动编辑器和文档
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showInformationMessage('没有打开的编辑器');
+            return;
+        }
+
+        const document = editor.document;
+        const report = [
+            `文件名: ${document.fileName}`,
+            `语言ID: ${document.languageId}`,
+            `扩展名: ${path.extname(document.fileName)}`,
+            `LSP客户端状态: ${langClient ? '已启动' : '未启动'}`,
+            `自动补全状态: ${langClient && langClient.initializeResult && 
+                langClient.initializeResult.capabilities.completionProvider ? '可用' : '不可用'}`
+        ];
+
+        console.log('XLang诊断报告:\n' + report.join('\n'));
+        vscode.window.showInformationMessage('XLang诊断报告已生成，请查看控制台');
+
+        // 尝试将文件设置为XLang类型
+        if (document.languageId !== 'xlang') {
+            vscode.window.showInformationMessage('当前文件不是XLang类型，尝试设置...');
+            vscode.languages.setTextDocumentLanguage(document, 'xlang')
+                .then(() => {
+                    vscode.window.showInformationMessage('成功设置为XLang类型');
+                })
+                .catch(err => {
+                    vscode.window.showErrorMessage(`设置失败: ${err.message}`);
+                });
+        }
+
+        // 如果LSP客户端已启动，尝试发送测试通知
+        if (langClient) {
+            // 发送测试通知
+            langClient.sendNotification('textDocument/didChange', {
+                text_document: {
+                    uri: document.uri.toString(),
+                    version: document.version
+                },
+                content_changes: [{ text: document.getText() }]
+            });
+            console.log('已发送测试通知到LSP服务器');
+        }
+
+        // 如果LSP客户端已启动，尝试手动触发自动补全功能测试
+        if (langClient && langClient.initializeResult && 
+            langClient.initializeResult.capabilities.completionProvider) {
+            console.log('自动补全功能已配置，可以使用补全提示');
+            vscode.window.showInformationMessage('自动补全功能已启用，请尝试在编辑器中输入触发字符');
+        } else if (langClient) {
+            console.log('LSP服务器未提供自动补全功能');
+            vscode.window.showWarningMessage('LSP服务器未提供自动补全功能，请检查服务器实现');
+        }
+    });
+
+    // 添加手动触发自动补全命令
+    let completionDisposable = vscode.commands.registerCommand('xlang.triggerCompletion', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.document.languageId !== 'xlang') {
+            vscode.window.showInformationMessage('请在XLang文件中使用此命令');
+            return;
+        }
+        
+        // 使用自定义方法直接向LSP发送补全请求
+        await requestCompletionFromLSP(editor.document, editor.selection.active);
+        console.log('手动向LSP服务器发送了补全请求');
+    });
+    
+    // 监听文本编辑事件，以便在用户输入后自动触发补全
+    const typingCompletionDisposable = vscode.workspace.onDidChangeTextDocument(event => {
+        if (event.document.languageId === 'xlang' && 
+            event.contentChanges.length > 0 && 
+            event.contentChanges[0].text.length > 0) {
+            
+            // 获取当前活动编辑器
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document === event.document) {
+                // 延迟触发以避免频繁触发
+                setTimeout(() => {
+                    // 使用LSP请求获取补全
+                    requestCompletionFromLSP(event.document, editor.selection.active);
+                }, 100);
+            }
+        }
     });
 
     // 监听终端关闭事件，清除引用
@@ -37,12 +124,24 @@ function activate(context) {
         vscode.workspace.onDidChangeTextDocument((event) => {
             // 检查是否为 XLang 文件
             if (event.document.languageId === 'xlang' && langClient) {
-                console.log('检测到 XLang 文件变更，通知 LSP 服务器');
-                // 如果需要，这里可以手动发送通知给 LSP 服务器
+                console.log('检测到 XLang 文件变更，发送全量更新到 LSP 服务器');
+
+                // 发送完整文档内容而不是增量变更
+                langClient.sendNotification('textDocument/didChange', {
+                    text_document: {
+                        uri: event.document.uri.toString(),
+                        version: event.document.version
+                    },
+                    // 使用单个内容变更项，包含完整文档内容
+                    content_changes: [
+                        {
+                            text: event.document.getText()
+                        }
+                    ]
+                });
             }
         })
     );
-
     // 添加文档保存监听器
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((document) => {
@@ -59,7 +158,41 @@ function activate(context) {
         })
     );
 
+    // 添加文档打开监听器
+    context.subscriptions.push(
+        vscode.workspace.onDidOpenTextDocument((document) => {
+            if (document.languageId === 'xlang' && langClient) {
+                console.log('XLang 文件已打开，通知 LSP 服务器');
+                langClient.sendNotification('textDocument/didOpen', {
+                    text_document: {
+                        uri: document.uri.toString(),
+                        language_id: document.languageId,
+                        version: document.version,
+                        text: document.getText()
+                    },
+                });
+            }
+        })
+    );
+
+    // 添加文档关闭监听器
+    context.subscriptions.push(
+        vscode.workspace.onDidCloseTextDocument((document) => {
+            if (document.languageId === 'xlang' && langClient) {
+                console.log('XLang 文件已关闭，通知 LSP 服务器');
+                langClient.sendNotification('textDocument/didClose', {
+                    text_document: {
+                        uri: document.uri.toString()
+                    }
+                });
+            }
+        })
+    );
+
     context.subscriptions.push(disposable);
+    context.subscriptions.push(testDisposable);
+    context.subscriptions.push(completionDisposable);
+    context.subscriptions.push(typingCompletionDisposable);
 }
 
 /**
@@ -111,30 +244,63 @@ function startLSP(context) {
         console.log(`使用XLang可执行文件: ${runtimePath}`);
     }
 
-    // 定义TCP端口，可以是随机生成的或配置的固定端口
-    const lspPort = config.get('lspPort') || 9257; // 默认9257端口，可通过配置修改
-    console.log(`LSP将使用端口: ${lspPort}`);
+    // 定义初始TCP端口，可以是随机生成的或配置的固定端口
+    let initialPort = config.get('lspPort') || 9257; // 默认9257端口，可通过配置修改
 
-    // 先检查端口是否被占用
-    const net = require('net');
-    const testServer = net.createServer()
-        .once('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                const msg = `端口 ${lspPort} 已被占用，请在设置中更改lspPort配置项`;
-                vscode.window.showErrorMessage(msg);
-                console.error(msg);
-                return;
-            }
+    // 自动查找可用端口
+    findAvailablePort(initialPort)
+        .then(availablePort => {
+            console.log(`LSP将使用端口: ${availablePort}`);
+            startActualLSP(context, runtimePath, availablePort);
         })
-        .once('listening', () => {
-            testServer.close(() => {
-                // 端口可用，启动LSP服务器
-                startActualLSP(context, runtimePath, lspPort);
-            });
-        })
-        .listen(lspPort);
+        .catch(err => {
+            const msg = `无法找到可用端口: ${err.message}`;
+            vscode.window.showErrorMessage(msg);
+            console.error(msg);
+        });
 }
 
+/**
+ * 查找可用端口
+ * @param {number} startPort 起始端口
+ * @param {number} maxAttempts 最大尝试次数
+ * @returns {Promise<number>} 可用端口
+ */
+function findAvailablePort(startPort, maxAttempts = 10) {
+    return new Promise((resolve, reject) => {
+        let currentPort = startPort;
+        let attempts = 0;
+
+        function tryPort(port) {
+            if (attempts >= maxAttempts) {
+                reject(new Error(`在尝试${maxAttempts}个端口后仍未找到可用端口`));
+                return;
+            }
+
+            attempts++;
+            const server = net.createServer();
+
+            server.once('error', err => {
+                if (err.code === 'EADDRINUSE') {
+                    console.log(`端口 ${port} 已被占用，尝试下一个端口...`);
+                    tryPort(port + 1);
+                } else {
+                    reject(err);
+                }
+            });
+
+            server.once('listening', () => {
+                server.close(() => {
+                    resolve(port);
+                });
+            });
+
+            server.listen(port);
+        }
+
+        tryPort(currentPort);
+    });
+}
 /**
  * 实际启动LSP服务器
  */
@@ -259,7 +425,6 @@ function startActualLSP(context, runtimePath, lspPort) {
             { scheme: 'file', language: 'xlang' },
             { scheme: 'untitled', language: 'xlang' },
             { scheme: 'file', pattern: '**/*.x' }, // 添加文件模式匹配
-            { scheme: 'file', pattern: '**/*.xlang' } // 添加更多可能的扩展名
         ],
         synchronize: {
             configurationSection: 'xlang',
@@ -274,6 +439,51 @@ function startActualLSP(context, runtimePath, lspPort) {
                     includeText: true
                 }
             }
+        },
+        // 增强的自动补全功能
+        middleware: {
+            provideCompletionItem: (document, position, context, token, next) => {
+                console.log(`通过中间件处理补全请求，位置: ${position.line}:${position.character}`);
+                
+                // 先向LSP服务器发送一次直接请求
+                requestCompletionFromLSP(document, position);
+                
+                // 继续原有的处理流程，但不再传递额外的trigger_kind
+                return next(document, position, context, token).then(completionList => {
+                    if (completionList) {
+                        console.log(`中间件收到补全建议: ${completionList.items ? completionList.items.length : '无'} 项`);
+                    }
+                    return completionList;
+                });
+            },
+            // 添加内联补全支持
+            provideInlineCompletionItems: async (document, position, context, token, next) => {
+                // 如果原始中间件链支持内联补全，则继续
+                if (next) {
+                    return next(document, position, context, token);
+                }
+                return null;
+            }
+        },
+        // 配置功能支持
+        capabilities: {
+            // 明确声明支持自动补全，并减少触发限制
+            completionProvider: {
+                resolveProvider: true,
+                // 几乎所有常用字符都可触发补全
+                triggerCharacters: [
+                    '.', ':', '@', '#', '(',
+                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+                    'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+                    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+                    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+                    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                    '_', '-', '+', '*', '/', '<', '>', '='
+                ],
+                allCommitCharacters: [' ', '\t', '\n', '(', ')', '[', ']', '{', '}', '.', ',', ';', ':']
+            },
+            // 支持内联补全功能
+            inlineCompletionProvider: true
         },
         outputChannelName: 'XLang Language Server',
         revealOutputChannelOn: 1
@@ -301,9 +511,164 @@ function startActualLSP(context, runtimePath, lspPort) {
                 }
             }
         });
+
+        // 添加自定义通知处理器，获取更多日志信息
+        langClient.onNotification('window/logMessage', (params) => {
+            console.log(`LSP日志: [${params.type}] ${params.message}`);
+        });
+
+        // 添加原始响应数据跟踪
+        langClient.onRequest('textDocument/completion', (params, token) => {
+            console.log('拦截到补全请求:', JSON.stringify(params));
+            // 不处理请求，返回undefined让常规处理继续
+            return undefined;
+        });
+
+        // 添加响应拦截以转换补全项目格式
+        const originalHandleResponse = langClient._handleResponse.bind(langClient);
+        langClient._handleResponse = (response) => {
+            try {
+                if (response && response.result && 
+                    response.method === 'textDocument/completion' || 
+                    (typeof response.id === 'number' && response.result instanceof Array)) {
+                    
+                    console.log('收到原始补全响应:', JSON.stringify(response));
+                    
+                    // 检查响应格式是否为数组而非标准的CompletionList对象
+                    if (Array.isArray(response.result)) {
+                        console.log('检测到数组格式的补全结果，转换为CompletionList格式');
+                        
+                        // 转换为VSCode期望的CompletionList格式
+                        response.result = {
+                            isIncomplete: false,
+                            items: response.result.map(item => {
+                                // 确保字段名称符合LSP规范
+                                return {
+                                    label: item.label,
+                                    kind: translateCompletionKind(item.kind),
+                                    detail: item.detail,
+                                    documentation: item.documentation,
+                                    insertText: item.insert_text || item.insertText,
+                                    // 添加其他必要的字段
+                                    sortText: item.sortText || item.label,
+                                    filterText: item.filterText || item.label,
+                                    data: item.data
+                                };
+                            })
+                        };
+                        console.log('转换后的补全列表:', JSON.stringify(response.result));
+                    }
+                }
+            } catch (err) {
+                console.error('处理补全响应时出错:', err);
+            }
+            return originalHandleResponse(response);
+        };
     } catch (err) {
         console.error('创建LSP客户端时出错:', err);
         vscode.window.showErrorMessage(`无法启动XLang语言服务: ${err.message}`);
+    }
+}
+
+/**
+ * 将XLang的补全类型转换为VSCode的补全类型
+ * @param {string} kind 补全类型名称
+ * @returns {number} VSCode补全类型
+ */
+function translateCompletionKind(kind) {
+    const CompletionItemKind = {
+        Text: 1,
+        Method: 2,
+        Function: 3,
+        Constructor: 4,
+        Field: 5,
+        Variable: 6,
+        Class: 7,
+        Interface: 8,
+        Module: 9,
+        Property: 10,
+        Unit: 11,
+        Value: 12,
+        Enum: 13,
+        Keyword: 14,
+        Snippet: 15,
+        Color: 16,
+        File: 17,
+        Reference: 18,
+        Folder: 19,
+        EnumMember: 20,
+        Constant: 21,
+        Struct: 22,
+        Event: 23,
+        Operator: 24,
+        TypeParameter: 25
+    };
+
+    // 将字符串类型转换为数字类型
+    if (typeof kind === 'string') {
+        return CompletionItemKind[kind] || CompletionItemKind.Text;
+    }
+    
+    // 已经是数字则直接返回
+    if (typeof kind === 'number' && kind >= 1 && kind <= 25) {
+        return kind;
+    }
+    
+    // 默认类型
+    return CompletionItemKind.Text;
+}
+
+/**
+ * 直接向LSP服务器发送补全请求
+ * @param {vscode.TextDocument} document 当前文档
+ * @param {vscode.Position} position 光标位置
+ */
+async function requestCompletionFromLSP(document, position) {
+    if (!langClient) {
+        console.log('LSP客户端未初始化，无法请求补全');
+        return;
+    }
+
+    try {
+        console.log(`向LSP发送补全请求，位置: ${position.line}:${position.character}`);
+        
+        // 构建LSP协议的补全请求参数 - 使用下划线格式的字段名称
+        const params = {
+            text_document: {  // 使用 text_document 而不是 textDocument
+                uri: document.uri.toString()
+            },
+            position: {
+                line: position.line,
+                character: position.character
+            }
+        };
+
+        // 记录发送的补全请求参数以便调试
+        console.log('发送的补全请求参数:', JSON.stringify(params));
+
+        // 向LSP服务器发送补全请求
+        langClient.sendRequest('textDocument/completion', params)
+            .then(completionList => {
+                if (completionList) {
+                    const itemCount = Array.isArray(completionList) 
+                        ? completionList.length 
+                        : (completionList.items ? completionList.items.length : 0);
+                    
+                    console.log(`收到来自LSP的补全建议: ${itemCount} 项`);
+                    
+                    // 如果收到补全建议，触发VSCode原生补全UI显示
+                    if (itemCount > 0) {
+                        vscode.commands.executeCommand('editor.action.triggerSuggest');
+                    }
+                } else {
+                    console.log('LSP服务器未返回补全建议');
+                }
+            })
+            .catch(error => {
+                console.error('获取补全时出错:', error);
+            });
+    } catch (error) {
+        console.error('发送补全请求时出错:', error);
     }
 }
 

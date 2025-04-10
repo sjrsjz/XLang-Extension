@@ -6,7 +6,37 @@
     ],
     "patterns": [
         {
-            "include": "#statement_expressions"
+            "include": "#comments"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#expressions"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#operators"
+        },
+        {
+            "include": "#functions"
+        },
+        {
+            "include": "#variables"
+        },
+        {
+            "include": "#control-flow"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#modifiers"
         }
     ],
     "repository": {
@@ -28,11 +58,33 @@
                 }
             ]
         },
-
-        "statement_expressions": {
+        "keywords": {
             "patterns": [
                 {
-                    "include": "#comments"
+                    "name": "keyword.control.xlang",
+                    "match": "\\b(if|else|while|return|break|continue|yield|async|await|in|import|this|self|dyn|boundary|raise)\\b"
+                },
+                {
+                    "name": "keyword.operator.logical.xlang",
+                    "match": "\\b(and|or|not)\\b"
+                },
+                {
+                    "name": "constant.language.xlang",
+                    "match": "\\b(true|false|null)\\b"
+                },
+                {
+                    "name": "storage.type.xlang",
+                    "match": "\\b(int|float|string|bool|tuple|keyval|named|lambda|range|wrap)\\b"
+                }
+            ]
+        },
+        "expressions": {
+            "patterns": [
+                {
+                    "include": "#return_yield_raise"
+                },
+                {
+                    "include": "#tuple"
                 },
                 {
                     "include": "#let_expression"
@@ -41,27 +93,20 @@
                     "include": "#assign_expression"
                 },
                 {
-                    "include": "#boundary_expression"
+                    "include": "#lambda_def"
                 },
                 {
-                    "include": "#return_yield_raise"
+                    "include": "#named_to"
                 },
                 {
-                    "include": "#if_statement"
+                    "include": "#key_value"
                 },
                 {
                     "include": "#while_loop"
                 },
                 {
-                    "include": "#logical_expressions"
+                    "include": "#if_statement"
                 },
-                {
-                    "include": "#member_access_or_call"
-                }
-            ]
-        },
-        "logical_expressions": {
-            "patterns": [
                 {
                     "include": "#control_flow"
                 },
@@ -72,44 +117,17 @@
                     "include": "#and_expression"
                 },
                 {
-                    "include": "#xor_expression"
+                    "include": "#not_expression"
                 },
-                {
-                    "include": "#comparison_expressions"
-                }
-            ]
-        },
-        "comparison_expressions": {
-            "patterns": [
                 {
                     "include": "#comparison_expression"
                 },
-                {
-                    "include": "#map_expression"
-                },
-                {
-                    "include": "#set_expression"
-                },
-                {
-                    "include": "#arithmetic_expressions"
-                }
-            ]
-        },
-        "arithmetic_expressions": {
-            "patterns": [
                 {
                     "include": "#add_sub_expression"
                 },
                 {
                     "include": "#mul_div_mod_expression"
                 },
-                {
-                    "include": "#bitwise_expressions"
-                }
-            ]
-        },
-        "bitwise_expressions": {
-            "patterns": [
                 {
                     "include": "#bitwise_or_expression"
                 },
@@ -123,20 +141,10 @@
                     "include": "#bitwise_shift_expression"
                 },
                 {
-                    "include": "#unary_expressions"
-                }
-            ]
-        },
-        "unary_expressions": {
-            "patterns": [
-                {
-                    "include": "#power_expression"
-                },
-                {
                     "include": "#unary_expression"
                 },
                 {
-                    "include": "#not_expression"
+                    "include": "#power_expression"
                 },
                 {
                     "include": "#range_expression"
@@ -148,22 +156,6 @@
                     "include": "#modifier_expression"
                 },
                 {
-                    "include": "#primary_expressions"
-                }
-            ]
-        },
-        "primary_expressions": {
-            "patterns": [
-                {
-                    "include": "#async_call_expression"
-                },
-                {
-                    "include": "#named_to"
-                },
-                {
-                    "include": "#key_value"
-                },
-                {
                     "include": "#named_to_null"
                 },
                 {
@@ -173,58 +165,7 @@
                     "include": "#alias_expression"
                 },
                 {
-                    "include": "#lambda_def"
-                },
-                {
                     "include": "#member_access_or_call"
-                },
-                {
-                    "include": "#atomic_expressions"
-                }
-            ]
-        },
-        "atomic_expressions": {
-            "patterns": [
-                {
-                    "include": "#tuple"
-                },
-                {
-                    "include": "#block_expression"
-                },
-                {
-                    "include": "#comments"
-                },
-                {
-                    "include": "#keywords"
-                },
-                {
-                    "include": "#strings"
-                },
-                {
-                    "include": "#numbers"
-                },
-                {
-                    "include": "#variables"
-                }
-            ]
-        },
-        "keywords": {
-            "patterns": [
-                {
-                    "name": "keyword.control.xlang",
-                    "match": "\\b(if|else|while|return|break|continue|yield|async|await|in|import|this|self|dyn|boundary|raise|collect)\\b"
-                },
-                {
-                    "name": "keyword.operator.logical.xlang",
-                    "match": "\\b(and|or|not|xor)\\b"
-                },
-                {
-                    "name": "constant.language.xlang",
-                    "match": "\\b(true|false|null)\\b"
-                },
-                {
-                    "name": "storage.type.xlang",
-                    "match": "\\b(int|float|string|bool|bytes|tuple|keyval|named|lambda|range|wrap)\\b"
                 }
             ]
         },
@@ -381,14 +322,6 @@
                 {
                     "name": "keyword.control.mapping.xlang",
                     "match": "(\\|>)"
-                },
-                {
-                    "name": "keyword.control.set.xlang",
-                    "match": "(\\|)"
-                },
-                {
-                    "name": "keyword.operator.bang.xlang",
-                    "match": "(\\!)"
                 }
             ]
         },
@@ -409,15 +342,6 @@
                     "captures": {
                         "1": {
                             "name": "entity.name.function.xlang"
-                        }
-                    }
-                },
-                {
-                    "name": "meta.function.async.call.xlang",
-                    "match": "\\basync\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
-                    "captures": {
-                        "1": {
-                            "name": "entity.name.function.async.xlang"
                         }
                     }
                 }
@@ -452,14 +376,6 @@
                 {
                     "name": "keyword.control.async.xlang",
                     "match": "\\b(async|await)\\b"
-                },
-                {
-                    "name": "keyword.control.error.xlang",
-                    "match": "\\b(raise)\\b"
-                },
-                {
-                    "name": "keyword.control.boundary.xlang",
-                    "match": "\\b(boundary)\\b"
                 }
             ]
         },
@@ -475,43 +391,13 @@
             "patterns": [
                 {
                     "name": "storage.modifier.xlang",
-                    "match": "\\b(bind|deepcopy|copy|ref|deref|keyof|valueof|selfof|assert|import|wrap|typeof|await|wipe|aliasof|async|len|collect)\\b"
-                }
-            ]
-        },
-        "block_expression": {
-            "name": "meta.block.xlang",
-            "begin": "{",
-            "end": "}",
-            "beginCaptures": {
-                "0": {
-                    "name": "punctuation.section.block.begin.xlang"
-                }
-            },
-            "endCaptures": {
-                "0": {
-                    "name": "punctuation.section.block.end.xlang"
-                }
-            },
-            "patterns": [
-                {
-                    "include": "#statement_expressions"
+                    "match": "\\b(bind|deepcopy|copy|ref|deref|keyof|valueof|selfof|assert|import|wrap|typeof|await|wipe|aliasof|async|len)\\b"
                 }
             ]
         },
         "return_yield_raise": {
-            "begin": "\\b(return|yield|raise)\\b",
-            "end": "(?=;|\\)|\\}|$)",
-            "beginCaptures": {
-                "1": {
-                    "name": "keyword.control.flow.xlang"
-                }
-            },
-            "patterns": [
-                {
-                    "include": "#logical_expressions"
-                }
-            ]
+            "name": "keyword.control.flow.xlang",
+            "match": "\\b(return|yield|raise)\\b"
         },
         "tuple": {
             "name": "meta.tuple.xlang",
@@ -529,7 +415,37 @@
             },
             "patterns": [
                 {
-                    "include": "#statement_expressions"
+                    "include": "#comments"
+                },
+                {
+                    "include": "#keywords"
+                },
+                {
+                    "include": "#expressions"
+                },
+                {
+                    "include": "#strings"
+                },
+                {
+                    "include": "#numbers"
+                },
+                {
+                    "include": "#operators"
+                },
+                {
+                    "include": "#functions"
+                },
+                {
+                    "include": "#variables"
+                },
+                {
+                    "include": "#control-flow"
+                },
+                {
+                    "include": "#types"
+                },
+                {
+                    "include": "#modifiers"
                 },
                 {
                     "name": "punctuation.separator.tuple.xlang",
@@ -549,15 +465,8 @@
             }
         },
         "assign_expression": {
-            "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)*(?:\\[[^\\]]*\\])*)\\s*(=)",
-            "captures": {
-                "1": {
-                    "name": "variable.other.xlang"
-                },
-                "2": {
-                    "name": "keyword.operator.assignment.xlang"
-                }
-            }
+            "match": "=",
+            "name": "keyword.operator.assignment.xlang"
         },
         "lambda_def": {
             "name": "meta.function.lambda.xlang",
@@ -578,7 +487,7 @@
             },
             "patterns": [
                 {
-                    "include": "#logical_expressions"
+                    "include": "#variables"
                 },
                 {
                     "name": "punctuation.separator.parameter.xlang",
@@ -604,26 +513,21 @@
             },
             "patterns": [
                 {
-                    "include": "#logical_expressions"
+                    "include": "#expressions"
                 }
             ]
         },
         "if_statement": {
             "begin": "\\b(if)\\b",
-            "end": "(?={)|\\b(else)\\b",
+            "end": "(?={)",
             "beginCaptures": {
-                "1": {
-                    "name": "keyword.control.conditional.xlang"
-                }
-            },
-            "endCaptures": {
                 "1": {
                     "name": "keyword.control.conditional.xlang"
                 }
             },
             "patterns": [
                 {
-                    "include": "#logical_expressions"
+                    "include": "#expressions"
                 }
             ]
         },
@@ -637,10 +541,6 @@
         },
         "and_expression": {
             "match": "\\b(and)\\b",
-            "name": "keyword.operator.logical.xlang"
-        },
-        "xor_expression": {
-            "match": "\\b(xor)\\b",
             "name": "keyword.operator.logical.xlang"
         },
         "not_expression": {
@@ -660,7 +560,7 @@
             "name": "keyword.operator.arithmetic.xlang"
         },
         "bitwise_or_expression": {
-            "match": "(\\|)(?!>)",
+            "match": "(\\|)",
             "name": "keyword.operator.bitwise.xlang"
         },
         "bitwise_and_expression": {
@@ -692,7 +592,7 @@
             "name": "keyword.operator.in.xlang"
         },
         "modifier_expression": {
-            "match": "\\b(deepcopy|copy|ref|deref|keyof|valueof|selfof|assert|import|wrap|typeof|await|wipe|aliasof|bind|collect)\\b",
+            "match": "\\b(deepcopy|copy|ref|deref|keyof|valueof|selfof|assert|import|wrap|typeof|await|wipe|aliasof|bind)\\b",
             "name": "storage.modifier.xlang"
         },
         "named_to_null": {
@@ -706,52 +606,6 @@
         "alias_expression": {
             "match": "(::)",
             "name": "keyword.operator.alias.xlang"
-        },
-        "map_expression": {
-            "match": "(\\|>)",
-            "name": "keyword.control.mapping.xlang"
-        },
-        "set_expression": {
-            "begin": "(\\|)(?!>)",
-            "end": "(?=\\s|\\)|\\}|\\]|,|;|$)",
-            "beginCaptures": {
-                "1": {
-                    "name": "keyword.control.set.xlang"
-                }
-            },
-            "patterns": [
-                {
-                    "include": "#logical_expressions"
-                }
-            ]
-        },
-        "async_call_expression": {
-            "begin": "\\b(async)\\b\\s+(?=[a-zA-Z_])",
-            "end": "(?=\\()",
-            "beginCaptures": {
-                "1": {
-                    "name": "keyword.control.async.xlang"
-                }
-            },
-            "patterns": [
-                {
-                    "include": "#functions"
-                }
-            ]
-        },
-        "boundary_expression": {
-            "begin": "\\b(boundary)\\b",
-            "end": "(?={)",
-            "beginCaptures": {
-                "1": {
-                    "name": "keyword.control.boundary.xlang"
-                }
-            },
-            "patterns": [
-                {
-                    "include": "#logical_expressions"
-                }
-            ]
         },
         "member_access_or_call": {
             "patterns": [
@@ -782,7 +636,40 @@
                     },
                     "patterns": [
                         {
-                            "include": "#logical_expressions"
+                            "include": "#comments"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#expressions"
+                        },
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#numbers"
+                        },
+                        {
+                            "include": "#operators"
+                        },
+                        {
+                            "include": "#functions"
+                        },
+                        {
+                            "include": "#variables"
+                        },
+                        {
+                            "include": "#control-flow"
+                        },
+                        {
+                            "include": "#types"
+                        },
+                        {
+                            "include": "#modifiers"
+                        },
+                        {
+                            "include": "#expressions"
                         }
                     ]
                 },
@@ -802,7 +689,37 @@
                     },
                     "patterns": [
                         {
-                            "include": "#logical_expressions"
+                            "include": "#comments"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#expressions"
+                        },
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#numbers"
+                        },
+                        {
+                            "include": "#operators"
+                        },
+                        {
+                            "include": "#functions"
+                        },
+                        {
+                            "include": "#variables"
+                        },
+                        {
+                            "include": "#control-flow"
+                        },
+                        {
+                            "include": "#types"
+                        },
+                        {
+                            "include": "#modifiers"
                         },
                         {
                             "name": "punctuation.separator.arguments.xlang",
