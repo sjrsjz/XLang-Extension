@@ -9,11 +9,6 @@
     "categories": [
         "Programming Languages"
     ],
-    "activationEvents": [
-        "onLanguage:xlang",
-        "onCommand:xlang.run",
-        "onCommand:xlang.diagnose"
-    ],
     "main": "./extension.js",
     "contributes": {
         "languages": [
@@ -30,13 +25,6 @@
                 "configuration": "./language-configuration.json"
             }
         ],
-        "grammars": [
-            {
-                "language": "xlang",
-                "scopeName": "source.xlang",
-                "path": "./syntaxes/xlang.tmLanguage.json"
-            }
-        ],
         "commands": [
             {
                 "command": "xlang.run",
@@ -45,6 +33,10 @@
             {
                 "command": "xlang.diagnose",
                 "title": "XLang诊断"
+            },
+            {
+                "command": "xlang.triggerCompletion",
+                "title": "XLang代码补全"
             }
         ],
         "menus": {
@@ -97,9 +89,323 @@
                     "type": "number",
                     "default": 9257,
                     "description": "LSP服务器使用的端口号"
+                },
+                "xlang.semanticHighlighting": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "是否启用语义着色功能"
                 }
             }
         },
+        "semanticTokenTypes": [
+            {
+                "id": "null",
+                "description": "空值标记",
+                "superType": "keyword"
+            },
+            {
+                "id": "boolean",
+                "description": "布尔值标记",
+                "superType": "keyword"
+            },
+            {
+                "id": "base64",
+                "description": "Base64编码数据",
+                "superType": "string"
+            },
+            {
+                "id": "let",
+                "description": "变量声明",
+                "superType": "variable"
+            },
+            {
+                "id": "body",
+                "description": "代码块主体",
+                "superType": "namespace"
+            },
+            {
+                "id": "boundary",
+                "description": "边界标记",
+                "superType": "operator"
+            },
+            {
+                "id": "assign",
+                "description": "赋值操作",
+                "superType": "operator"
+            },
+            {
+                "id": "lambdaDef",
+                "description": "Lambda定义",
+                "superType": "function"
+            },
+            {
+                "id": "expressions",
+                "description": "表达式",
+                "superType": "variable"
+            },
+            {
+                "id": "lambdaCall",
+                "description": "Lambda调用",
+                "superType": "function"
+            },
+            {
+                "id": "asyncLambdaCall",
+                "description": "异步Lambda调用",
+                "superType": "function"
+            },
+            {
+                "id": "operation",
+                "description": "操作符",
+                "superType": "operator"
+            },
+            {
+                "id": "tuple",
+                "description": "元组",
+                "superType": "struct"
+            },
+            {
+                "id": "assumeTuple",
+                "description": "推断元组",
+                "superType": "struct"
+            },
+            {
+                "id": "keyValue",
+                "description": "键值对",
+                "superType": "operator"
+            },
+            {
+                "id": "indexOf",
+                "description": "索引操作",
+                "superType": "operator"
+            },
+            {
+                "id": "getAttr",
+                "description": "获取属性",
+                "superType": "operator"
+            },
+            {
+                "id": "return",
+                "description": "返回语句",
+                "superType": "keyword"
+            },
+            {
+                "id": "raise",
+                "description": "异常抛出",
+                "superType": "keyword"
+            },
+            {
+                "id": "if",
+                "description": "条件语句",
+                "superType": "keyword"
+            },
+            {
+                "id": "while",
+                "description": "循环语句",
+                "superType": "keyword"
+            },
+            {
+                "id": "namedTo",
+                "description": "命名指向",
+                "superType": "variable"
+            },
+            {
+                "id": "break",
+                "description": "中断循环",
+                "superType": "keyword"
+            },
+            {
+                "id": "continue",
+                "description": "继续循环",
+                "superType": "keyword"
+            },
+            {
+                "id": "range",
+                "description": "范围操作",
+                "superType": "operator"
+            },
+            {
+                "id": "in",
+                "description": "包含判断",
+                "superType": "keyword"
+            },
+            {
+                "id": "yield",
+                "description": "生成器产出",
+                "superType": "keyword"
+            },
+            {
+                "id": "alias",
+                "description": "别名定义",
+                "superType": "variable"
+            },
+            {
+                "id": "set",
+                "description": "集合类型",
+                "superType": "type"
+            },
+            {
+                "id": "map",
+                "description": "映射类型",
+                "superType": "type"
+            }
+        ],
+        "semanticTokenScopes": [
+            {
+                "scopes": {
+                    "comment" : ["comment.block.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "null": ["constant.language.null.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "boolean": ["constant.language.boolean.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "base64": ["string.base64.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "let": ["keyword.operator.arithmetic.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "body": ["entity.name.section.body.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "boundary": ["keyword.operator.arithmetic.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "assign": ["keyword.operator.arithmetic.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "lambdaDef": ["entity.name.function.lambda.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "expressions": ["comment.block.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "lambdaCall": ["meta.function-call.lambda.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "asyncLambdaCall": ["meta.function-call.async.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "operation": ["keyword.operator.arithmetic.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "tuple": ["support.type.tuple.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "assumeTuple": ["support.type.assumeTuple.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "keyValue": ["keyword.operator.arithmetic.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "indexOf": ["keyword.operator.index.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "getAttr": ["keyword.operator.arithmetic.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "return": ["keyword.control.flow.return.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "raise": ["keyword.control.exception.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "if": ["keyword.control.conditional.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "while": ["keyword.control.loop.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "namedTo": ["keyword.operator.arithmetic.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "break": ["keyword.control.loop.break.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "continue": ["keyword.control.loop.continue.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "range": ["constant.operator.range.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "in": ["keyword.operator.comparison.in.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "yield": ["keyword.control.flow.yield.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "alias": ["entity.name.type.alias.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "set": ["support.type.set.xlang"]
+                }
+            },
+            {
+                "scopes": {
+                    "map": ["support.type.map.xlang"]
+                }
+            }
+        ],
         "keybindings": [
             {
                 "command": "xlang.run",
@@ -124,9 +430,15 @@
         "type": "git",
         "url": "git+https://github.com/sjrsjz/XLang-Extension.git"
     },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "keywords": [
+        "vscode",
+        "xlang",
+        "extension",
+        "language",
+        "lsp"
+    ],
+    "author": "sjrsjz",
+    "license": "MIT",
     "type": "commonjs",
     "bugs": {
         "url": "https://github.com/sjrsjz/XLang-Extension/issues"

@@ -39,7 +39,9 @@ function activate(context) {
             `扩展名: ${path.extname(document.fileName)}`,
             `LSP客户端状态: ${langClient ? '已启动' : '未启动'}`,
             `自动补全状态: ${langClient && langClient.initializeResult && 
-                langClient.initializeResult.capabilities.completionProvider ? '可用' : '不可用'}`
+                langClient.initializeResult.capabilities.completionProvider ? '可用' : '不可用'}`,
+            `语义令牌状态: ${langClient && langClient.initializeResult && 
+                langClient.initializeResult.capabilities.semanticTokensProvider ? '可用' : '不可用'}`
         ];
 
         console.log('XLang诊断报告:\n' + report.join('\n'));
@@ -61,13 +63,27 @@ function activate(context) {
         if (langClient) {
             // 发送测试通知
             langClient.sendNotification('textDocument/didChange', {
-                text_document: {
+                textDocument: {
                     uri: document.uri.toString(),
                     version: document.version
                 },
-                content_changes: [{ text: document.getText() }]
+                contentChanges: [{ text: document.getText() }]
             });
             console.log('已发送测试通知到LSP服务器');
+            
+            // 手动请求语义令牌
+            langClient.sendRequest('textDocument/semanticTokens/full', {
+                textDocument: {
+                    uri: document.uri.toString()
+                }
+            }).then(tokens => {
+                console.log('收到语义令牌:', tokens ? '有数据' : '无数据');
+                if (tokens) {
+                    console.log('令牌数据前100项:', JSON.stringify(tokens).substring(0, 500) + '...');
+                }
+            }).catch(err => {
+                console.error('请求语义令牌失败:', err);
+            });
         }
 
         // 如果LSP客户端已启动，尝试手动触发自动补全功能测试
@@ -128,12 +144,12 @@ function activate(context) {
 
                 // 发送完整文档内容而不是增量变更
                 langClient.sendNotification('textDocument/didChange', {
-                    text_document: {
+                    textDocument: {
                         uri: event.document.uri.toString(),
                         version: event.document.version
                     },
                     // 使用单个内容变更项，包含完整文档内容
-                    content_changes: [
+                    contentChanges: [
                         {
                             text: event.document.getText()
                         }
@@ -164,9 +180,9 @@ function activate(context) {
             if (document.languageId === 'xlang' && langClient) {
                 console.log('XLang 文件已打开，通知 LSP 服务器');
                 langClient.sendNotification('textDocument/didOpen', {
-                    text_document: {
+                    textDocument: {
                         uri: document.uri.toString(),
-                        language_id: document.languageId,
+                        languageId: document.languageId,
                         version: document.version,
                         text: document.getText()
                     },
@@ -181,7 +197,7 @@ function activate(context) {
             if (document.languageId === 'xlang' && langClient) {
                 console.log('XLang 文件已关闭，通知 LSP 服务器');
                 langClient.sendNotification('textDocument/didClose', {
-                    text_document: {
+                    textDocument: {
                         uri: document.uri.toString()
                     }
                 });
@@ -443,18 +459,7 @@ function startActualLSP(context, runtimePath, lspPort) {
         // 增强的自动补全功能
         middleware: {
             provideCompletionItem: (document, position, context, token, next) => {
-                console.log(`通过中间件处理补全请求，位置: ${position.line}:${position.character}`);
-                
-                // 先向LSP服务器发送一次直接请求
-                requestCompletionFromLSP(document, position);
-                
-                // 继续原有的处理流程，但不再传递额外的trigger_kind
-                return next(document, position, context, token).then(completionList => {
-                    if (completionList) {
-                        console.log(`中间件收到补全建议: ${completionList.items ? completionList.items.length : '无'} 项`);
-                    }
-                    return completionList;
-                });
+
             },
             // 添加内联补全支持
             provideInlineCompletionItems: async (document, position, context, token, next) => {
@@ -483,7 +488,12 @@ function startActualLSP(context, runtimePath, lspPort) {
                 allCommitCharacters: [' ', '\t', '\n', '(', ')', '[', ']', '{', '}', '.', ',', ';', ':']
             },
             // 支持内联补全功能
-            inlineCompletionProvider: true
+            inlineCompletionProvider: true,
+            // 添加语义着色支持
+            semanticTokensProvider: {
+                full: true,
+                range: false
+            }
         },
         outputChannelName: 'XLang Language Server',
         revealOutputChannelOn: 1
@@ -491,6 +501,112 @@ function startActualLSP(context, runtimePath, lspPort) {
     try {
         // 创建语言客户端
         langClient = new LanguageClient('xlangLanguageServer', 'XLang Language Server', serverOptions, clientOptions);
+
+        // 在启动前，先注册语义令牌类型和修饰符
+        // 定义语义令牌类型（按照LSP规范）
+        const tokenTypes = [
+            'namespace', 'type', 'class', 'enum', 'interface',
+            'struct', 'typeParameter', 'parameter', 'variable', 'property',
+            'enumMember', 'event', 'function', 'method', 'macro',
+            'keyword', 'modifier', 'comment', 'string', 'number',
+            'regexp', 'operator', 'decorator',
+            // XLang自定义语义令牌类型
+            'null', 'boolean', 'base64', 'let', 'body',
+            'boundary', 'assign', 'lambdaDef', 'expressions', 'lambdaCall',
+            'asyncLambdaCall', 'operation', 'tuple', 'assumeTuple', 'keyValue',
+            'indexOf', 'getAttr', 'return', 'raise', 'if',
+            'while', 'namedTo', 'break', 'continue', 'range',
+            'in', 'yield', 'alias', 'set', 'map'
+        ];
+        
+        // 定义语义令牌修饰符
+        const tokenModifiers = [
+            'declaration', 'definition', 'readonly', 'static',
+            'deprecated', 'abstract', 'async', 'modification',
+            'documentation', 'defaultLibrary'
+        ];
+        
+  
+        // 注册语义令牌信息
+        const legend = {
+            tokenTypes,
+            tokenModifiers
+        };
+
+        langClient.clientOptions.capabilities = langClient.clientOptions.capabilities || {};
+        langClient.clientOptions.capabilities.textDocument = {
+            ...(langClient.clientOptions.capabilities.textDocument || {}),
+            semanticTokens: {
+                dynamicRegistration: true,
+                tokenTypes: tokenTypes,
+                tokenModifiers: tokenModifiers,
+                formats: ['relative'],
+                requests: {
+                    full: {
+                        delta: false
+                    },
+                    range: false
+                }
+            }
+        };
+        
+        // 添加语义令牌处理中间件
+        langClient.clientOptions.middleware = {
+            ...(langClient.clientOptions.middleware || {}),
+            // 处理语义令牌的请求和响应
+            workspace: {
+                ...(langClient.clientOptions.middleware?.workspace || {}),
+                // 拦截和处理语义令牌响应
+                handleWorkspaceSymbol: (params, token, next) => {
+                    console.log('拦截到工作区符号请求:', JSON.stringify(params));
+                    return next(params, token);
+                }
+            },
+            // 文档操作中间件
+            textDocument: {
+                ...(langClient.clientOptions.middleware?.textDocument || {}),
+                // 处理语义令牌响应
+                semanticTokens: {
+                    ...(langClient.clientOptions.middleware?.textDocument?.semanticTokens || {}),
+                    full: (document, token, next) => {
+                        console.log(`请求文档的语义令牌: ${document.uri}`);
+                        
+                        // 先检查服务器是否支持语义令牌
+                        if (!langClient.initializeResult?.capabilities?.semanticTokensProvider) {
+                            console.log('服务器不支持语义令牌功能，跳过请求');
+                            // 返回空令牌数据
+                            return Promise.resolve({ data: [] });
+                        }
+                        
+                        return next(document, token).then(tokens => {
+                            if (tokens) {
+                                console.log(`收到语义令牌数据，数据长度: ${tokens.data ? tokens.data.length : '未知'}`);
+                                if (tokens.data && tokens.data.length > 0) {
+                                    console.log(`令牌数据示例: [${tokens.data.slice(0, 10).join(', ')}]...`);
+                                }
+                            } else {
+                                console.log('未收到语义令牌数据');
+                                // 不再自动尝试手动请求，因为服务器可能不支持
+                            }
+                            return tokens;
+                        });
+                    }
+                }
+            }
+        };
+        
+        // 注册语义令牌提供器到服务器初始化选项
+        langClient.registerProposedFeatures();
+        const initOptions = langClient.initializeParams?.initializationOptions || {};
+        langClient.initializeParams = {
+            ...langClient.initializeParams,
+            initializationOptions: {
+                ...initOptions,
+                semanticTokens: {
+                    legend: legend
+                }
+            }
+        };
 
         // 启动客户端
         const disposable = langClient.start();
@@ -524,46 +640,6 @@ function startActualLSP(context, runtimePath, lspPort) {
             return undefined;
         });
 
-        // 添加响应拦截以转换补全项目格式
-        const originalHandleResponse = langClient._handleResponse.bind(langClient);
-        langClient._handleResponse = (response) => {
-            try {
-                if (response && response.result && 
-                    response.method === 'textDocument/completion' || 
-                    (typeof response.id === 'number' && response.result instanceof Array)) {
-                    
-                    console.log('收到原始补全响应:', JSON.stringify(response));
-                    
-                    // 检查响应格式是否为数组而非标准的CompletionList对象
-                    if (Array.isArray(response.result)) {
-                        console.log('检测到数组格式的补全结果，转换为CompletionList格式');
-                        
-                        // 转换为VSCode期望的CompletionList格式
-                        response.result = {
-                            isIncomplete: false,
-                            items: response.result.map(item => {
-                                // 确保字段名称符合LSP规范
-                                return {
-                                    label: item.label,
-                                    kind: translateCompletionKind(item.kind),
-                                    detail: item.detail,
-                                    documentation: item.documentation,
-                                    insertText: item.insert_text || item.insertText,
-                                    // 添加其他必要的字段
-                                    sortText: item.sortText || item.label,
-                                    filterText: item.filterText || item.label,
-                                    data: item.data
-                                };
-                            })
-                        };
-                        console.log('转换后的补全列表:', JSON.stringify(response.result));
-                    }
-                }
-            } catch (err) {
-                console.error('处理补全响应时出错:', err);
-            }
-            return originalHandleResponse(response);
-        };
     } catch (err) {
         console.error('创建LSP客户端时出错:', err);
         vscode.window.showErrorMessage(`无法启动XLang语言服务: ${err.message}`);
@@ -632,14 +708,16 @@ async function requestCompletionFromLSP(document, position) {
     try {
         console.log(`向LSP发送补全请求，位置: ${position.line}:${position.character}`);
         
-        // 构建LSP协议的补全请求参数 - 使用下划线格式的字段名称
         const params = {
-            text_document: {  // 使用 text_document 而不是 textDocument
+            textDocument: {
                 uri: document.uri.toString()
             },
             position: {
                 line: position.line,
                 character: position.character
+            },
+            context: {
+                triggerKind: "Invoked",
             }
         };
 
@@ -656,8 +734,17 @@ async function requestCompletionFromLSP(document, position) {
                     
                     console.log(`收到来自LSP的补全建议: ${itemCount} 项`);
                     
-                    // 如果收到补全建议，触发VSCode原生补全UI显示
+                    // 详细记录收到的建议，帮助调试
                     if (itemCount > 0) {
+                        const items = Array.isArray(completionList) 
+                            ? completionList 
+                            : completionList.items;
+                        
+                        if (items && items.length > 0) {
+                            console.log(`补全建议示例: ${JSON.stringify(items.slice(0, 3))}`);
+                        }
+                        
+                        // 触发VSCode原生补全UI显示
                         vscode.commands.executeCommand('editor.action.triggerSuggest');
                     }
                 } else {
@@ -666,6 +753,13 @@ async function requestCompletionFromLSP(document, position) {
             })
             .catch(error => {
                 console.error('获取补全时出错:', error);
+                // 记录更详细的错误信息
+                if (error.message) {
+                    console.error('错误消息:', error.message);
+                }
+                if (error.code) {
+                    console.error('错误代码:', error.code);
+                }
             });
     } catch (error) {
         console.error('发送补全请求时出错:', error);
