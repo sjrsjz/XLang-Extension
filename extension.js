@@ -209,6 +209,26 @@ function activate(context) {
     context.subscriptions.push(testDisposable);
     context.subscriptions.push(completionDisposable);
     context.subscriptions.push(typingCompletionDisposable);
+
+    const completionProvider = vscode.languages.registerCompletionItemProvider(
+        [
+            { scheme: 'file', language: 'xlang' },
+            { scheme: 'untitled', language: 'xlang' },
+            { scheme: 'file', pattern: '**/*.x' }
+        ],
+        {
+            async provideCompletionItems(document, position, token, context) {
+                // 使用LSP请求获取补全项并转换为VSCode补全项
+                return requestCompletionFromLSP(document, position);
+            }
+        },
+        // 触发字符
+        '.', ' ', ':', '\n', '(', ')', '[', ']', '{', '}', ',', ';',
+        '+', '-', '*', '/', '%', '=', '!', '&', '|', '^', '~'
+    );
+
+    context.subscriptions.push(completionProvider);
+
 }
 
 /**
@@ -475,15 +495,10 @@ function startActualLSP(context, runtimePath, lspPort) {
             // 明确声明支持自动补全，并减少触发限制
             completionProvider: {
                 resolveProvider: true,
-                // 几乎所有常用字符都可触发补全
                 triggerCharacters: [
-                    '.', ':', '@', '#', '(',
-                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-                    'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-                    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-                    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-                    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-                    '_', '-', '+', '*', '/', '<', '>', '='
+                    ' ', '\t', '\n', '(', ')', '[', ']', '{', '}', '.', ',', ';', ':',
+                    // 添加更多触发字符
+                    '+', '-', '*', '/', '%', '=', '!', '&', '|', '^', '~'
                 ],
                 allCommitCharacters: [' ', '\t', '\n', '(', ')', '[', ']', '{', '}', '.', ',', ';', ':']
             },
@@ -694,6 +709,7 @@ function translateCompletionKind(kind) {
     return CompletionItemKind.Text;
 }
 
+
 /**
  * 直接向LSP服务器发送补全请求
  * @param {vscode.TextDocument} document 当前文档
@@ -707,7 +723,7 @@ async function requestCompletionFromLSP(document, position) {
 
     try {
         console.log(`向LSP发送补全请求，位置: ${position.line}:${position.character}`);
-        
+
         const params = {
             textDocument: {
                 uri: document.uri.toString()
@@ -717,7 +733,7 @@ async function requestCompletionFromLSP(document, position) {
                 character: position.character
             },
             context: {
-                triggerKind: "Invoked",
+                triggerKind: "Invoked"
             }
         };
 
@@ -725,44 +741,47 @@ async function requestCompletionFromLSP(document, position) {
         console.log('发送的补全请求参数:', JSON.stringify(params));
 
         // 向LSP服务器发送补全请求
-        langClient.sendRequest('textDocument/completion', params)
-            .then(completionList => {
-                if (completionList) {
-                    const itemCount = Array.isArray(completionList) 
-                        ? completionList.length 
-                        : (completionList.items ? completionList.items.length : 0);
-                    
-                    console.log(`收到来自LSP的补全建议: ${itemCount} 项`);
-                    
-                    // 详细记录收到的建议，帮助调试
-                    if (itemCount > 0) {
-                        const items = Array.isArray(completionList) 
-                            ? completionList 
-                            : completionList.items;
-                        
-                        if (items && items.length > 0) {
-                            console.log(`补全建议示例: ${JSON.stringify(items.slice(0, 3))}`);
-                        }
-                        
-                        // 触发VSCode原生补全UI显示
-                        vscode.commands.executeCommand('editor.action.triggerSuggest');
-                    }
-                } else {
-                    console.log('LSP服务器未返回补全建议');
-                }
-            })
-            .catch(error => {
-                console.error('获取补全时出错:', error);
-                // 记录更详细的错误信息
-                if (error.message) {
-                    console.error('错误消息:', error.message);
-                }
-                if (error.code) {
-                    console.error('错误代码:', error.code);
-                }
-            });
+        const completionList = await langClient.sendRequest('textDocument/completion', params);
+
+        if (completionList) {
+            const items = Array.isArray(completionList)
+                ? completionList
+                : (completionList.items || []);
+
+            const itemCount = items.length;
+            console.log(`收到来自LSP的补全建议: ${itemCount} 项`);
+
+            // 详细记录收到的建议，帮助调试
+            if (itemCount > 0) {
+                console.log(`补全建议示例: ${JSON.stringify(items.slice(0, 3))}`);
+
+                // 将LSP补全结果转换为VSCode补全项
+                const vscodeItems = items.map(item => {
+                    return new vscode.CompletionItem(
+                        item.label,
+                        translateCompletionKind(item.kind)
+                    );
+                });
+
+                // 直接显示补全项
+                // 这里不直接调用triggerSuggest，而是通过VSCode API提供补全项
+                return vscodeItems;
+            }
+        } else {
+            console.log('LSP服务器未返回补全建议');
+        }
+
+        return []; // 返回空数组表示没有补全建议
+
     } catch (error) {
-        console.error('发送补全请求时出错:', error);
+        console.error('获取补全请求时出错:', error);
+        if (error.message) {
+            console.error('错误消息:', error.message);
+        }
+        if (error.code) {
+            console.error('错误代码:', error.code);
+        }
+        return []; // 出错时返回空数组
     }
 }
 
