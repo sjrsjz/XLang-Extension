@@ -444,5 +444,7 @@
     "bugs": {
         "url": "https://github.com/sjrsjz/XLang-Extension/issues"
     },
-    "homepage": "https://github.com/sjrsjz/XLang-Extension#readme"
+    "homepage": "https://github.com/sjrsjz/XLang-Extension#readme",
+    "icon": "images/icon.ico",
+    "publisher": "sjrsjz"
 }
