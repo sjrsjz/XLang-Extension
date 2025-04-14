@@ -589,10 +589,11 @@ function startActualLSP(context, runtimePath, lspPort) {
                         // 先检查服务器是否支持语义令牌
                         if (!langClient.initializeResult?.capabilities?.semanticTokensProvider) {
                             console.log('服务器不支持语义令牌功能，跳过请求');
-                            // 返回空令牌数据
-                            return Promise.resolve({ data: [] });
+                            // 返回 null 以保留现有着色（如果有）
+                            return Promise.resolve(null);
                         }
                         
+                        // 调用原始处理程序获取令牌
                         return next(document, token).then(tokens => {
                             if (tokens) {
                                 console.log(`收到语义令牌数据，数据长度: ${tokens.data ? tokens.data.length : '未知'}`);
@@ -600,10 +601,14 @@ function startActualLSP(context, runtimePath, lspPort) {
                                     console.log(`令牌数据示例: [${tokens.data.slice(0, 10).join(', ')}]...`);
                                 }
                             } else {
-                                console.log('未收到语义令牌数据');
-                                // 不再自动尝试手动请求，因为服务器可能不支持
+                                console.log('未收到语义令牌数据 (可能服务器返回空或null)');
+                                // 如果服务器明确返回 null 或 undefined，也视为保留现有令牌
                             }
-                            return tokens;
+                            return tokens; // 返回获取到的令牌
+                        }).catch(error => {
+                            console.error(`请求语义令牌失败: ${error.message}`);
+                            // 在请求失败时返回 null，指示 VS Code 保留之前的令牌
+                            return null;
                         });
                     }
                 }
@@ -667,48 +672,22 @@ function startActualLSP(context, runtimePath, lspPort) {
  * @returns {number} VSCode补全类型
  */
 function translateCompletionKind(kind) {
-    const CompletionItemKind = {
-        Text: 1,
-        Method: 2,
-        Function: 3,
-        Constructor: 4,
-        Field: 5,
-        Variable: 6,
-        Class: 7,
-        Interface: 8,
-        Module: 9,
-        Property: 10,
-        Unit: 11,
-        Value: 12,
-        Enum: 13,
-        Keyword: 14,
-        Snippet: 15,
-        Color: 16,
-        File: 17,
-        Reference: 18,
-        Folder: 19,
-        EnumMember: 20,
-        Constant: 21,
-        Struct: 22,
-        Event: 23,
-        Operator: 24,
-        TypeParameter: 25
-    };
-
-    // 将字符串类型转换为数字类型
+    // 使用 VSCode 内置的 CompletionItemKind
+    const vscodeKinds = vscode.CompletionItemKind;
+    
+    // 将字符串类型转换为 VSCode CompletionItemKind
     if (typeof kind === 'string') {
-        return CompletionItemKind[kind] || CompletionItemKind.Text;
+        return kind in vscodeKinds ? vscodeKinds[kind] : vscodeKinds.Text;
     }
     
-    // 已经是数字则直接返回
+    // 如果已经是数字，检查是否在有效范围内
     if (typeof kind === 'number' && kind >= 1 && kind <= 25) {
         return kind;
     }
     
     // 默认类型
-    return CompletionItemKind.Text;
+    return vscodeKinds.Text;
 }
-
 
 /**
  * 直接向LSP服务器发送补全请求
