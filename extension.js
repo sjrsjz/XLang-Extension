@@ -343,119 +343,140 @@ function findAvailablePort(startPort, maxAttempts = 10) {
 function startActualLSP(context, runtimePath, lspPort) {
     console.log(`正在启动LSP服务器: ${runtimePath} lsp --port ${lspPort}`);
 
-    // 服务器选项配置 - 使用TCP连接
+    // 服务器选项配置 - 使用TCP连接，添加重试逻辑
     const serverOptions = () => {
-        return new Promise((resolve, reject) => {
-            // 使用详细日志级别启动LSP服务器进程
-            const lspProcess = spawn(runtimePath, ['lsp', '--port', lspPort.toString()]);
-            let started = false;
-            let outputBuffer = '';
+        return new Promise(async (resolve, reject) => {
+            try {
+                // 首先验证可执行文件
+                await checkExecutable();
 
-            // 处理进程标准输出
-            lspProcess.stdout.on('data', (data) => {
-                const message = data.toString();
-                outputBuffer += message;
-                console.log(`LSP服务器输出: ${message.trim()}`);
+                // 配置启动参数，增加调试标志
+                const args = ['lsp', '--port', lspPort.toString(), '--debug'];
+                console.log(`启动命令: ${runtimePath} ${args.join(' ')}`);
 
-                // 检查是否有启动成功的信息
-                if (message.includes("LSP server started") ||
-                    message.includes("服务器已启动") ||
-                    message.includes("listening") ||
-                    (!started && message.includes("port"))) {
+                // 启动进程
+                const lspProcess = spawn(runtimePath, args);
+                let started = false;
+                let outputBuffer = '';
+                let connectAttempts = 0;
+                const maxConnectAttempts = 5;
 
-                    console.log(`检测到LSP服务器启动信息，准备连接到端口: ${lspPort}`);
-                    started = true;
+                // 处理进程标准输出
+                lspProcess.stdout.on('data', (data) => {
+                    const message = data.toString();
+                    outputBuffer += message;
+                    console.log(`LSP服务器输出: ${message.trim()}`);
 
-                    // 等待一小段时间，确保服务器已完全启动
-                    setTimeout(() => {
-                        try {
-                            // 建立TCP socket连接
-                            const socket = net.connect(lspPort);
+                    // 检查是否有启动成功的信息
+                    if (message.includes("LSP server started") ||
+                        message.includes("服务器已启动") ||
+                        message.includes("listening") ||
+                        (!started && message.includes("port"))) {
 
-                            socket.on('connect', () => {
-                                console.log(`已成功连接到LSP服务器端口: ${lspPort}`);
-                            });
+                        console.log(`检测到LSP服务器启动信息，准备连接到端口: ${lspPort}`);
+                        started = true;
 
-                            socket.on('error', (err) => {
-                                console.error(`Socket连接错误: ${err.message}`);
+                        // 定义连接函数，支持重试
+                        const attemptConnection = () => {
+                            connectAttempts++;
+                            console.log(`尝试连接 #${connectAttempts}...`);
+
+                            try {
+                                // 建立TCP socket连接
+                                const socket = net.connect(lspPort);
+
+                                socket.on('connect', () => {
+                                    console.log(`已成功连接到LSP服务器端口: ${lspPort}`);
+                                });
+
+                                socket.on('error', (err) => {
+                                    console.error(`Socket连接错误 #${connectAttempts}: ${err.message}`);
+                                    if (connectAttempts < maxConnectAttempts) {
+                                        console.log(`2秒后重试连接...`);
+                                        setTimeout(attemptConnection, 2000);
+                                    } else {
+                                        reject(new Error(`连接失败，已重试${maxConnectAttempts}次: ${err.message}`));
+                                    }
+                                });
+
+                                // 返回reader和writer
+                                resolve({
+                                    reader: socket,
+                                    writer: socket
+                                });
+                            } catch (err) {
+                                console.error(`创建连接时出错 #${connectAttempts}: ${err.message}`);
+                                if (connectAttempts < maxConnectAttempts) {
+                                    console.log(`2秒后重试连接...`);
+                                    setTimeout(attemptConnection, 2000);
+                                } else {
+                                    reject(new Error(`连接失败，已重试${maxConnectAttempts}次: ${err.message}`));
+                                }
+                            }
+                        };
+
+                        // 增加延迟时间，确保服务器完全启动
+                        setTimeout(attemptConnection, 2000);
+                    }
+                });
+
+                // 处理进程错误输出
+                lspProcess.stderr.on('data', (data) => {
+                    const errMsg = data.toString();
+                    console.log(`LSP服务器错误输出: ${errMsg}`);
+
+                    // 有些情况下错误输出也可能包含启动信息
+                    if (!started && (errMsg.includes("Listening") || errMsg.includes("port"))) {
+                        started = true;
+                        setTimeout(() => {
+                            try {
+                                const socket = net.connect(lspPort);
+                                resolve({
+                                    reader: socket,
+                                    writer: socket
+                                });
+                            } catch (err) {
                                 reject(err);
-                            });
+                            }
+                        }, 2000);
+                    }
+                });
 
-                            // 返回reader和writer
-                            resolve({
-                                reader: socket,
-                                writer: socket
-                            });
-                        } catch (err) {
-                            reject(err);
-                            console.error(`无法建立TCP连接: ${err.message}`);
-                        }
-                    }, 1000); // 增加延迟以确保服务器完全启动
-                }
-            });
+                // 处理进程退出事件
+                lspProcess.on('exit', (code) => {
+                    if (code !== 0 && !started) {
+                        const message = `XLang LSP服务器进程以状态码 ${code} 退出`;
+                        console.error(message);
+                        reject(new Error(message));
+                    } else if (started) {
+                        console.log(`LSP服务器进程退出，但连接已建立`);
+                    }
+                });
 
-            // 处理进程错误输出
-            lspProcess.stderr.on('data', (data) => {
-                const errMsg = data.toString();
-                console.log(`LSP服务器输出: ${errMsg}`);
-
-                // 某些错误信息实际上可能是服务器正常启动的一部分
-                if (errMsg.includes("Listening") || errMsg.includes("port")) {
-                    started = true;
-                    setTimeout(() => {
-                        try {
-                            const socket = net.connect(lspPort);
-                            resolve({
-                                reader: socket,
-                                writer: socket
-                            });
-                        } catch (err) {
-                            reject(err);
-                        }
-                    }, 1000);
-                }
-            });
-
-            // 处理进程退出事件
-            lspProcess.on('exit', (code) => {
-                if (code !== 0 && !started) {
-                    const message = `XLang LSP服务器进程以状态码 ${code} 退出`;
+                // 处理进程启动错误
+                lspProcess.on('error', (err) => {
+                    const message = `无法启动XLang LSP服务器: ${err.message}`;
                     console.error(message);
                     reject(new Error(message));
-                } else if (started) {
-                    console.log(`LSP服务器进程退出，但连接已建立`);
-                }
-            });
+                });
 
-            // 处理进程启动错误
-            lspProcess.on('error', (err) => {
-                const message = `无法启动XLang LSP服务器: ${err.message}`;
-                console.error(message);
-                reject(new Error(message));
-            });
-
-            // 定时检查是否成功连接
-            setTimeout(() => {
-                if (!started) {
-                    // 超时时打印收集到的所有输出，帮助调试
-                    console.error('等待LSP服务器启动超时');
-                    console.error('收集到的输出:', outputBuffer);
-
-                    // 尝试使用help命令检查可执行文件是否正常
-                    const helpProcess = spawn(runtimePath, ['--help']);
-                    helpProcess.stdout.on('data', (data) => {
-                        console.log(`XLang帮助输出: ${data.toString()}`);
-                    });
-
-                    helpProcess.on('exit', () => {
+                // 定时检查是否成功连接
+                setTimeout(() => {
+                    if (!started) {
+                        // 超时时打印收集到的所有输出，帮助调试
+                        console.error('等待LSP服务器启动超时');
+                        console.error('收集到的输出:', outputBuffer);
                         reject(new Error('等待LSP服务器启动超时'));
-                        lspProcess.kill();
-                    });
-                }
-            }, 15000); // 增加超时时间至15秒
+                    }
+                }, 20000); // 增加超时时间至20秒
+
+            } catch (err) {
+                console.error('启动LSP服务器前验证失败:', err.message);
+                reject(err);
+            }
         });
     };
-
+    
     const clientOptions = {
         documentSelector: [
             { scheme: 'file', language: 'xlang' },
