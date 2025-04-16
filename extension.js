@@ -342,7 +342,35 @@ function findAvailablePort(startPort, maxAttempts = 10) {
  */
 function startActualLSP(context, runtimePath, lspPort) {
     console.log(`正在启动LSP服务器: ${runtimePath} lsp --port ${lspPort}`);
+    function checkExecutable() {
+        return new Promise((resolve, reject) => {
+            console.log(`检查可执行文件: ${runtimePath}`);
+            const helpProcess = spawn(runtimePath, ['--help']);
+            let stdoutData = '';
+            let stderrData = '';
 
+            helpProcess.stdout.on('data', (data) => {
+                stdoutData += data.toString();
+            });
+
+            helpProcess.stderr.on('data', (data) => {
+                stderrData += data.toString();
+            });
+
+            helpProcess.on('error', (err) => {
+                reject(new Error(`可执行文件验证失败: ${err.message}`));
+            });
+
+            helpProcess.on('exit', (code) => {
+                if (code === 0) {
+                    console.log('可执行文件验证成功');
+                    resolve(true);
+                } else {
+                    reject(new Error(`可执行文件验证失败，退出码: ${code}, 输出: ${stdoutData}, 错误: ${stderrData}`));
+                }
+            });
+        });
+    }
     // 服务器选项配置 - 使用TCP连接，添加重试逻辑
     const serverOptions = () => {
         return new Promise(async (resolve, reject) => {
@@ -351,7 +379,7 @@ function startActualLSP(context, runtimePath, lspPort) {
                 await checkExecutable();
 
                 // 配置启动参数，增加调试标志
-                const args = ['lsp', '--port', lspPort.toString(), '--debug'];
+                const args = ['lsp', '--port', lspPort.toString()];
                 console.log(`启动命令: ${runtimePath} ${args.join(' ')}`);
 
                 // 启动进程
@@ -422,11 +450,11 @@ function startActualLSP(context, runtimePath, lspPort) {
 
                 // 处理进程错误输出
                 lspProcess.stderr.on('data', (data) => {
-                    const errMsg = data.toString();
-                    console.log(`LSP服务器错误输出: ${errMsg}`);
+                    const msg = data.toString();
+                    console.log(`LSP服务器输出: ${msg}`);
 
                     // 有些情况下错误输出也可能包含启动信息
-                    if (!started && (errMsg.includes("Listening") || errMsg.includes("port"))) {
+                    if (!started && (msg.includes("Listening") || msg.includes("port"))) {
                         started = true;
                         setTimeout(() => {
                             try {
