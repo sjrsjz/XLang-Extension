@@ -580,7 +580,7 @@ function startActualLSP(context, runtimePath, lspPort) {
             'asyncLambdaCall', 'operation', 'tuple', 'assumeTuple', 'keyValue',
             'indexOf', 'getAttr', 'return', 'raise', 'if',
             'while', 'namedTo', 'break', 'continue', 'range',
-            'in', 'yield', 'alias', 'set', 'map'
+            'in', 'emit', 'alias', 'set', 'map'
         ];
         
         // 定义语义令牌修饰符

@@ -230,8 +230,8 @@
                 "superType": "keyword"
             },
             {
-                "id": "yield",
-                "description": "生成器产出",
+                "id": "emit",
+                "description": "异步产出",
                 "superType": "keyword"
             },
             {
@@ -388,7 +388,7 @@
             },
             {
                 "scopes": {
-                    "yield": ["keyword.control.flow.yield.xlang"]
+                    "emit": ["keyword.control.flow.emit.xlang"]
                 }
             },
             {
